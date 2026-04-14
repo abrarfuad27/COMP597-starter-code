@@ -61,16 +61,28 @@ class SimpleTrainer(base.Trainer):
         # TODO remove conf as it is unused.
         self.conf = conf
 
+    def process_batch(self, i:int, batch:Any) -> Any:
+        images, labels = batch
+        return images.to(self.device), labels.to(self.device)
+
     def checkpoint_dict(self, i: int) -> Dict[str, Any]:
         super_dict = super().checkpoint_dict(i)
         super_dict["optimizer_state_dict"] = self.optimizer.state_dict()
         super_dict["lr_scheduler_state_dict"] = self.lr_scheduler.state_dict()
         return super_dict
     
-    def forward(self, i: int, batch: Any, model_kwargs: Dict[str, Any]) -> torch.Tensor:
-        self.optimizer.zero_grad() #Zero the gradients
-        outputs = self.model(**batch, **model_kwargs)
-        return outputs.loss
+    def forward(self, i: int, batch, model_kwargs):
+        images, labels = batch
+        self.optimizer.zero_grad()
+        logits = self.model(images)
+        loss = self.model.loss_fn(logits, labels)
+        
+        # Calculate accuracy
+        preds = torch.argmax(logits, dim=1)
+        correct = (preds == labels).sum().item()
+        accuracy = correct / len(labels)
+
+        return loss, accuracy
     
     def backward(self, i: int, loss: torch.Tensor) -> None:
         loss.backward()

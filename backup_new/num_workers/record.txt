@@ -1,0 +1,23 @@
+for gpu num workers = 0
+
+batch 8
+total time: 147s, energy: 0.022
+
+batch 16
+total time: 237s, energy: 0.036
+
+batch 32
+total time: 406s, energy: 0.062
+
+to show that num_workers=0 is unsustainable
+
+for gpu num workers = 4
+
+batch 8
+total time: 117s, energy: 0.018
+
+batch 16
+total time: 194s, energy: 0.031
+
+batch 32
+total time: 297s, energy: 0.047

@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 import tqdm.auto
+import time
 
 class Trainer(ABC):
     """Base class implemented by all trainer objects.
@@ -212,19 +213,19 @@ class Trainer(ABC):
             model_kwargs = {}
         batch = self.process_batch(i, batch)
 
-        self.stats.start_forward()
-        loss = self.forward(i, batch, model_kwargs)
-        self.stats.stop_forward()
+        #self.stats.start_forward()
+        loss, accuracy = self.forward(i, batch, model_kwargs)
+        #self.stats.stop_forward()
 
-        self.stats.start_backward()
+        #self.stats.start_backward()
         self.backward(i, loss)
-        self.stats.stop_backward()
+        #self.stats.stop_backward()
 
-        self.stats.start_optimizer_step()
+        #self.stats.start_optimizer_step()
         self.optimizer_step(i)
-        self.stats.stop_optimizer_step()
+        #self.stats.stop_optimizer_step()
         
-        return loss, None
+        return loss, accuracy, None
 
     def train(self, model_kwargs : Optional[Dict[str, Any]]) -> None:
         """Training loop for the model.
@@ -255,12 +256,19 @@ class Trainer(ABC):
 
         """
         progress_bar = tqdm.auto.tqdm(range(len(self.loader)), desc="loss: N/A")
-
+        threshold = 0.3
         self.stats.start_train()
         for i, batch in enumerate(self.loader):
             self.stats.start_step()
-            loss, descr = self.step(i, batch, model_kwargs)
+            loss, accuracy, descr = self.step(i, batch, model_kwargs)
             self.stats.stop_step()
+
+            
+            progress_bar.set_postfix(loss=f"{loss.item():.4f}", acc=f"{accuracy:.2%}")
+
+            if (loss.item() < threshold and i>450):
+                progress_bar.write(f"Target loss reached ({loss.item():.4f} < {threshold}). Stopping training.")
+                break
 
             if self.enable_checkpointing and self.should_save_checkpoint(i):
                 self.stats.start_save_checkpoint()
@@ -272,10 +280,10 @@ class Trainer(ABC):
             self.stats.log_step()
 
             if descr is not None:
-                progress_bar.clear()
-                print(descr)
-            progress_bar.clear()
+                progress_bar.write(descr)
+                
             progress_bar.update(1)
+            
 
         self.stats.stop_train()
         progress_bar.close()

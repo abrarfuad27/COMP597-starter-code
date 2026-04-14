@@ -2,7 +2,7 @@ import logging
 import os
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    level=logging.getLevelNamesMapping().get(os.environ.get("COMP597_LOG_LEVEL", "WARNING"), logging.WARNING),
+    level=os.environ.get("COMP597_LOG_LEVEL", "WARNING").upper(),
     format="[{levelname:.4}] : {asctime} : {module:<24.24} : {message}",
     datefmt="%Y-%m-%dT%H:%M:%S",
     style='{',
@@ -62,4 +62,3 @@ def main():
 if __name__ == "__main__":
     main()
     gc.collect()
-
